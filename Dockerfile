@@ -1,5 +1,5 @@
 FROM nginxproxy/docker-gen:latest
-LABEL maintainer="james.talmage@jrtechnical.com"
+LABEL maintainer="james@talmage.io"
 ENV WEBPROC_VERSION=0.4.0
 ARG TARGETPLATFORM
 RUN case ${TARGETPLATFORM} in \
@@ -21,26 +21,46 @@ RUN mkdir -p /etc/output
 
 COPY <<EOT /etc/docker-gen.conf
 [[config]]
-template = "/etc/templates/helloworld.tmpl"
-dest = "/etc/output/helloworld"
+template = "/etc/templates/template1.tmpl"
+dest = "/etc/output/output1"
+[[config]]
+template = "/etc/templates/template2.tmpl"
+dest = "/etc/output/output2"
+[[config]]
+template = "/etc/templates/template3.tmpl"
+dest = "/etc/output/output3"
 EOT
 
-COPY <<EOT /etc/templates/helloworld.tmpl
+COPY <<EOT /etc/templates/template1.tmpl
+#hello world
+{{ toPrettyJson . }}
+EOT
+
+COPY <<EOT /etc/templates/template2.tmpl
 #hello world
 {{ json . }}
+EOT
+
+COPY <<EOT /etc/templates/template3.tmpl
+#hello world
+{{ toPrettyJson . }}
 EOT
 
 COPY <<"EOT" /app/entry-wrapper.sh
 #!/bin/sh
 echo "***Regenerating Output***"
-/app/docker-entrypoint.sh $@
-cat /etc/output/helloworld
+docker-gen $@
+cat /etc/output/output1
 EOT
 
 RUN chmod +x /app/entry-wrapper.sh
 
 ENTRYPOINT ["webproc", \
-    "-c", "/etc/templates/helloworld.tmpl", \
+    "-c", "/etc/templates/template1.tmpl", \
+    "-c", "/etc/templates/template2.tmpl", \
+    "-c", "/etc/templates/template3.tmpl", \
     "-c", "/etc/docker-gen.conf", \
-    "-c", "/etc/output/helloworld", \
+    "-c", "/etc/output/output1", \
+    "-c", "/etc/output/output2", \
+    "-c", "/etc/output/output3", \
     "--", "/app/entry-wrapper.sh", "-config", "/etc/docker-gen.conf"]
